@@ -5,45 +5,84 @@ import './App.css';
 function App() {
 
   // add random client id by date time
-  const [clientID, setclienID] = useState(Math.floor(new Date().getTime()/1000));
+  const [clientId, setclienId] = useState(Math.floor(new Date().getTime()/1000));
 
-  const [chatHistory, setchatHistory] = useState([]);
+  const [websckt, setWebsckt] = useState();
+  const [message, setMessage] = useState([]);
+  const [messages, setMessages] = useState([]);
 
-  
   useEffect(() => {
-    const url = "ws"
+    const url = "ws://localhost:8000/ws/" + clientId;
+    const ws = new WebSocket(url);
 
-    return () => {
-      second
-    }
+    ws.onopen = (event) => {
+      ws.send("Connect");
+    };
 
-  }, [third])
+   // recieve message every start page
+   ws.onmessage = (e) => {
+    const message = JSON.parse(e.data);
+    setMessages([...messages, message]);
+  };
+
+  setWebsckt(ws);
+  //clean up function when we close page
+  return () => ws.close();
+}, []);
+
+  const sendMessage = () => {
+    websckt.send(message);
+    // recieve message every send message
+    websckt.onmessage = (e) => {
+      const message = JSON.parse(e.data);
+      setMessages([...messages, message]);
+    };
+    setMessage([]);
+  };
 
   return (
     <div className="container">
       <h1>Chat</h1>
-      <h2>your client id: </h2>
-      <div className = "chat-container">
-        <div classname = "chat">
-          <div className="my-message">
-            <p className="client">client id: </p>
-            <p className="message">Hello</p>
-          </div>
-
-          <div className="another-message">
-            <p className="client">client id: </p>
-            <p className="message">Hey!</p>
-          </div>
-        
+      <h2>your client id: {clientId} </h2>
+      <div className="chat-container">
+        <div className="chat">
+          {messages.map((value, index) => {
+            if (value.clientId === clientId) {
+              return (
+                <div key={index} className="my-message-container">
+                <div className="my-message">
+                  <p className="client">client id : {clientId}</p>
+                  <p className="message">{value.message}</p>
+                </div>
+              </div>
+              );
+            } else {
+              return (
+                <div key={index} className="another-message-container">
+                  <div className="another-message">
+                    <p className="client">client id : {clientId}</p>
+                    <p className="message">{value.message}</p>
+                  </div>
+                </div>
+              );
+            }
+          })}
         </div>
-        <div clasName = "input-chat-container">
-          <input className = "input-chat" type = "text" placeholder = "Chat Message ..."/>
-          <button className = "submit-chat">Send</button>
+        <div className="input-chat-container">
+        <input
+            className="input-chat"
+            type="text"
+            placeholder="Chat message ..."
+            onChange={(e) => setMessage(e.target.value)}
+            value={message}
+          ></input>
+          <button className="submit-chat" onClick={sendMessage}>
+            Send
+          </button>
         </div>
       </div>
-      
     </div>
   );
-}
+  }
 
 export default App;
